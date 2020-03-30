@@ -1,0 +1,17 @@
+[output files]
+; Path to amass output file
+amass_output =
+; Path to dnsrecon output file
+dnsrecon_output =
+; Path tp nmap folder
+nmap_output_folder =
+
+[log files]
+; Path to log folder
+log_folder =
+
+[vpn]
+; Enable vpn check, Will exit program if wrong ip is detected
+vpn_check = true
+; Fail vpn check if this ip is detected
+wrong_ip =

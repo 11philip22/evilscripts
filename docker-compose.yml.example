@@ -1,0 +1,83 @@
+version: "3.7"
+
+services:
+  pia:
+    build: https://github.com/qdm12/private-internet-access-docker.git
+    container_name: pia
+    cap_add:
+      - NET_ADMIN
+    network_mode: bridge
+    init: true
+    ports:
+      - 9200:9200
+#      - 8888:8888/tcp
+#      - 8388:8388/tcp
+#      - 8388:8388/udp
+    environment:
+      - USER=
+      - PASSWORD=
+      - ENCRYPTION=strong
+      - PROTOCOL=udp
+      - REGION=
+      - DOT=on
+      - DOT_PROVIDERS=cloudflare
+      - BLOCK_MALICIOUS=on
+      - BLOCK_SURVEILLANCE=off
+      - BLOCK_ADS=off
+      - UNBLOCK=
+      - EXTRA_SUBNETS=
+#      - TINYPROXY=off
+#      - TINYPROXY_LOG=Info
+#      - TINYPROXY_USER=
+#      - TINYPROXY_PASSWORD=
+#      - SHADOWSOCKS=off
+#      - SHADOWSOCKS_LOG=on
+#      - SHADOWSOCKS_PORT=8388
+#      - SHADOWSOCKS_PASSWORD=
+
+#  es:
+#    image: docker.elastic.co/elasticsearch/elasticsearch:7.6.1
+#    container_name: elastic
+#    network_mode: "service:pia"
+#    environment:
+#      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+#    volumes:
+#      - ./elasticsearch/data:/usr/share/elasticsearch/data
+#      - ./elasticsearch/config.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+#    ulimits:
+#      memlock:
+#        soft: -1
+#        hard: -1
+
+#  kali:
+#    #build: https://github.com/11philip22/docker-kali.git
+#    image: philipwold/kali
+#    container_name: kali
+#    network_mode: "service:pia"
+#    volumes:
+#      - /home/philip:/home/user
+
+  toolbox:
+    build: ./secrettoolbox
+    container_name: toolbox
+    network_mode: "service:pia"
+    volumes:
+      - /home/philip:/home/user
+      - ./secrettoolbox/enumerationengine:/home/kali/enumerationengine
+#    depends_on:
+#      - es
+
+#  amass:
+#    build: https://github.com/OWASP/Amass.git
+#    container_name: amass
+#    network_mode: "service:pia"
+#    volumes:
+#      - /home/philip:/home/user
+#      - /home/philip/finds/amass:/.config/amass
+#
+#  dnsrecon:
+#    build: https://github.com/11philip22/docker-dnsrecon.git
+#    container_name: dnsrecon
+#    network_mode: "service:pia"
+#    volumes:
+#      - /home/philip:/home/user

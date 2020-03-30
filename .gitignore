@@ -1,0 +1,8 @@
+# Created by .ignore support plugin (hsz.mobi)
+
+.idea/
+config.ini
+run_amass.sh
+docker-compose.yml
+__pycache__/
+elasticsearch/
