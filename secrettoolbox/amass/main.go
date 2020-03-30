@@ -35,13 +35,13 @@ var (
 	ipRegex, _ = regexp.Compile(
 		`^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$`)
 )
+
 func isValidIpv4(ipAddress string) bool {
 	ipAddress = strings.Trim(ipAddress, " ")
 	return ipRegex.MatchString(ipAddress)
 }
 
-
-func pingScan(target string) bool {
+func pingScan(target string) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 	scanner, err := nmap.NewScanner(
@@ -50,12 +50,12 @@ func pingScan(target string) bool {
 		nmap.WithContext(ctx),
 	)
 	if err != nil {
-		fmt.Printf("unable to create nmap scanner: %v", err)
+		return false, err
 	}
 
 	result, warnings, err := scanner.Run()
 	if err != nil {
-		fmt.Printf("unable to run nmap scan: %v", err)
+		return false, err
 	}
 	if warnings != nil {
 		fmt.Printf("Warnings: \n %v", warnings)
@@ -64,22 +64,21 @@ func pingScan(target string) bool {
 	if len(result.Hosts) > 0 {
 		for _, host := range result.Hosts {
 			if host.Status.State == "up" {
-				return true
+				return true, nil
 			}
 		}
 	}
-	return false
+	return false, nil
 }
 
-func portScan(target string, outputFolder string)  {
+func portScan(target string, outputFolder string) (*nmap.Run, string, error) {
 	//fmt.Println("Starting portscan", target)
 
 	nmapFolder := filepath.Join(outputFolder, "nmap")
 	if _, err := os.Stat(nmapFolder); os.IsNotExist(err) {
 		err := os.Mkdir(nmapFolder, 0755)
 		if err != nil {
-			fmt.Println(err)
-			return
+			return nil, "", err
 		}
 	}
 	fileName := fmt.Sprintf("%s.txt", target)
@@ -93,37 +92,32 @@ func portScan(target string, outputFolder string)  {
 		nmap.WithSkipHostDiscovery(),
 		nmap.WithAggressiveScan(),
 		nmap.WithContext(ctx),
+		// Write to file
 		nmap.WithCustomArguments("-oN"),
 		nmap.WithCustomArguments(outputFile),
 	)
 	if err != nil {
-		fmt.Printf("unable to create nmap scanner: %v", err)
+		return nil, "", err
 	}
 
 	result, warnings, err := scanner.Run()
 	if err != nil {
-		fmt.Printf("unable to run nmap scan: %v", err)
+		return nil, "", err
 	}
 	if warnings != nil {
 		fmt.Printf("Warnings: \n %v", warnings)
 	}
 
-	fmt.Println(result)
-	fmt.Println()
-
-	//if len(result.Hosts) > 0 {
-	//	for _, host := range result.Hosts {
-	//
-	//	}
-	//}
+	return result, outputFile, nil
 }
 
 func main() {
 	target := os.Args[1]
 	outputFolder := os.Args[2]
+	projectFolder := filepath.Join(outputFolder, target)
 
-	if _, err := os.Stat(outputFolder); os.IsNotExist(err) {
-		err := os.Mkdir(outputFolder, 0755)
+	if _, err := os.Stat(projectFolder); os.IsNotExist(err) {
+		err := os.MkdirAll(projectFolder, 0755)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -155,12 +149,24 @@ func main() {
 			if isValidIpv4(ipString) {
 
 				_, inSlice := stringInSlice(knownHosts, ipString)
+				// If ip is not known proceed
 				if inSlice == false {
+					// Add ip to known ip list
 					knownHosts = append(knownHosts, ipString)
 
 					go func(ip string) {
-						if pingScan(ip){
-							portScan(ip, outputFolder)
+						up, err := pingScan(ip)
+						if err != nil {
+							fmt.Println(err)
+						}
+						if up {
+							result, _, err := portScan(ip, projectFolder)
+							if err != nil {
+								fmt.Println(err)
+							}
+							if result != nil {
+								fmt.Println(result)
+							}
 						}
 					}(ipString)
 				}
